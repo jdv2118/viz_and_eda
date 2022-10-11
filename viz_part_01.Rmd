@@ -1,0 +1,172 @@
+---
+title: "viz_part_01"
+author: "Justin Vargas"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Let's import data
+
+```{r}
+library(tidyverse)
+library(ggridges)
+```
+
+This code from the course website gets the data.
+
+```{r}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728", "USC00519397", "USS0023B17S"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(
+      id, 
+      USW00094728 = "CentralPark_NY", 
+      USC00519397 = "Waikiki_HA",
+      USS0023B17S = "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+```
+
+Let's make a scatterplot
+
+```{r}
+ggplot(weather_df, aes(x = tmin, y = tmax)) + 
+  geom_point()
+```
+
+Let's make the same scatterplot, but different
+
+```{r}
+weather_df %>% 
+  drop_na() %>% 
+  filter(name == "CentralPark_NY") %>% 
+  ggplot(aes(x = tmin, y = tmax)) + 
+  geom_point()
+```
+
+Let's keep making the same plot but different.
+
+```{r}
+weather_scatterplot = 
+  weather_df %>% 
+  drop_na() %>% 
+  ggplot(aes(x = tmin, y = tmax))
+weather_scatterplot + 
+  geom_point()
+```
+
+## Let's fancy this up a bit
+
+```{r}
+weather_df %>% 
+  ggplot(aes(x = tmin, y = tmax, color = name)) + 
+  geom_point(alpha = .3) + 
+  geom_smooth(se = FALSE)
+```
+
+Maybe make separate panels.
+
+```{r}
+weather_df %>% 
+  ggplot(aes(x = tmin, y = tmax, color = name)) + 
+  geom_point(alpha = .3) + 
+  geom_smooth(se = FALSE) + 
+  facet_grid(. ~ name)
+```
+
+`tmax` vs `tmin` is boring, let's spice it up some.
+
+```{r}
+weather_df %>% 
+  ggplot(aes(x = date, y = tmax, color = name)) + 
+  geom_point(aes(size = prcp), alpha = .3) + 
+  geom_smooth(se = FALSE) + 
+  facet_grid(. ~ name) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+## Some quick stuff
+
+```{r}
+weather_df %>% 
+  ggplot(aes(x = tmin, y = tmax)) + 
+  geom_hex()
+```
+
+
+
+## Univariate plots ...
+
+Histograms, density, boxplots, violins, ...
+
+```{r}
+weather_df %>% 
+  ggplot(aes(x = tmax, fill = name)) + 
+  geom_histogram() + 
+  facet_grid(. ~ name)
+```
+
+
+Let's see more options!
+
+```{r}
+weather_df %>% 
+  ggplot(aes(x = tmax, fill = name)) + 
+  geom_density(alpha = .3)
+```
+
+Boxplots??
+
+```{r}
+weather_df %>% 
+  ggplot(aes(x = name, y = tmax, fill = name)) + 
+  geom_boxplot()
+```
+
+```{r}
+weather_df %>% 
+  ggplot(aes(x = name, y = tmax, fill = name)) + 
+  geom_violin()
+```
+
+OR
+
+```{r}
+weather_df %>% 
+  ggplot(aes(x = tmax, y = name)) +
+  geom_density_ridges()
+```
+
+
+## Saving and embedding plots
+
+First -- let's save a plot.
+
+```{r}
+weather_scatterplot =
+  weather_df %>% 
+  ggplot(aes(x = date, y = tmax, color = name)) + 
+  geom_point(aes(size = prcp), alpha = .3) + 
+  geom_smooth(se = FALSE) + 
+  facet_grid(. ~ name)
+
+weather_scatterplot 
+
+ggsave(
+  file = "results/weather_scatterplot.pdf", 
+  plot = weather_scatterplot,
+  width = 8, height = 5)
+```
+
+```{r}
+weather_scatterplot
+```
+
