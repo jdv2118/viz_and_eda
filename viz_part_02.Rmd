@@ -1,0 +1,173 @@
+---
+title: "viz_part_02"
+author: "Justin Vargas"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Let's import data
+
+```{r}
+library(tidyverse)
+library(ggridges)
+library(patchwork)
+```
+
+This code from the course website gets the data.
+
+```{r}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728", "USC00519397", "USS0023B17S"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(
+      id, 
+      USW00094728 = "CentralPark_NY", 
+      USC00519397 = "Waikiki_HA",
+      USS0023B17S = "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+```
+
+
+## Scatterplot
+
+But better this time
+
+```{r}
+weather_df %>% 
+  ggplot(aes(x = tmin, y = tmax, color = name)) + 
+  geom_point(alpha = .5) + 
+  labs(
+    x = "Minimum Daily Temp (C)",
+    y = "Maximum Daily Temp (C)",
+    title = "Scatterplot of daily temp extremes",
+    caption = "Data come from the rnoaa package"
+  ) + 
+  scale_x_continuous(
+    breaks = c(-10, 0, 15), 
+    labels = c("-10C", "0", "15")
+  ) 
+```
+
+Make a new version.
+
+```{r}
+weather_df %>% 
+  ggplot(aes(x = tmin, y = tmax, color = name)) + 
+  geom_point(alpha = .5) + 
+  labs(
+    x = "Minimum Daily Temp (C)",
+    y = "Maximum Daily Temp (C)",
+    title = "Scatterplot of daily temp extremes",
+    caption = "Data come from the rnoaa package"
+  ) + 
+  viridis::scale_color_viridis(
+    name = "Location", 
+    discrete = TRUE)
+```
+
+
+## Themes
+
+```{r}
+ggp_weather = 
+  weather_df %>% 
+  ggplot(aes(x = tmin, y = tmax, color = name)) + 
+  geom_point(alpha = .5) + 
+  labs(
+    x = "Minimum Daily Temp (C)",
+    y = "Maximum Daily Temp (C)",
+    title = "Scatterplot of daily temp extremes",
+    caption = "Data come from the rnoaa package"
+  ) + 
+  viridis::scale_color_viridis(
+    name = "Location", 
+    discrete = TRUE)
+```
+
+```{r}
+ggp_weather + 
+  theme_minimal() + 
+  theme(legend.position = "bottom")
+```
+
+
+## Data in geom()
+
+```{r}
+central_park_df = 
+  weather_df %>% 
+  filter(name == "CentralPark_NY")
+waikiki_df = 
+  weather_df %>% 
+  filter(name == "Waikiki_HA")
+ggplot(waikiki_df, aes(x = date, y = tmax)) + 
+  geom_point() + 
+  geom_line(data = central_park_df)
+```
+
+## Patchwork ...
+
+```{r}
+tmax_tmin_plot = 
+  weather_df %>% 
+  ggplot(aes(x = tmin, y = tmax, color = name)) +
+  geom_point() + 
+  theme(legend.position = "none")
+  
+prcp_density_plot = 
+  weather_df %>% 
+  filter(prcp > 0) %>% 
+  ggplot(aes(x = prcp, fill = name)) + 
+  geom_density(alpha = .5) + 
+  theme(legend.position = "none")
+seasonality_plot = 
+  weather_df %>% 
+  ggplot(aes(x = date, y = tmax, color = name)) + 
+  geom_point(alpha = .5) + 
+  geom_smooth(se = FALSE) +
+  theme(legend.position = "none")
+  
+(tmax_tmin_plot + prcp_density_plot) / seasonality_plot
+```
+
+
+
+## Data manipulation
+
+```{r}
+weather_df %>% 
+  mutate(name = fct_reorder(name, tmax)) %>% 
+  ggplot(aes(x = name, y = tmax)) + 
+  geom_boxplot()
+```
+
+
+```{r}
+pulse_df = 
+  haven::read_sas("data/public_pulse_data.sas7bdat") %>% 
+  janitor::clean_names() %>% 
+  pivot_longer(
+    bdi_score_bl:bdi_score_12m,
+    names_to = "visit", 
+    values_to = "bdi",
+    names_prefix = "bdi_score_"
+  ) %>% 
+  select(id, visit, everything()) %>% 
+  mutate(
+    visit = fct_relevel(visit, "bl")
+  )
+pulse_df %>% 
+  ggplot(aes(x = visit, y = bdi)) + 
+  geom_boxplot()
+```
+
+
